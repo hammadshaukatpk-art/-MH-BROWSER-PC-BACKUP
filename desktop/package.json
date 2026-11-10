@@ -26,7 +26,8 @@
       "ui/**",
       "README.md",
       "package.json",
-      "site-media.js"
+      "site-media.js",
+      "webstore.js"
     ],
     "win": {
       "target": [
@@ -73,5 +74,8 @@
         "to": "mh-browser.ico"
       }
     ]
+  },
+  "dependencies": {
+    "adm-zip": "^0.5.16"
   }
 }
