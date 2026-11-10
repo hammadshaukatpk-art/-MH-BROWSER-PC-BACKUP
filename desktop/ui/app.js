@@ -62,13 +62,13 @@ if(panel==='profile'){
 if(panel==='extensions'){
  host.append(el('h3','extensions-heading','Chrome Web Store Extensions'));
  const tools=el('div','extensions-actions');
- tools.append(button('Chrome Web Store ↗',()=>call('external','https://chromewebstore.google.com/'),'secondary'));
+ tools.append(button('Chrome Web Store',()=>{navigate('https://chromewebstore.google.com/');hidePanel()},'secondary'));
  tools.append(button('Load unpacked extension',async()=>{try{await call('load-extension');renderPanel()}catch(e){await notice(e.message)}},'action'));
  host.append(tools);
  host.append(el('h4','extensions-subheading','Installed extensions'));
  const list=el('div','extensions-list');host.append(list);
  call('extensions').then(items=>{if(panel!=='extensions')return;if(!items.length){list.append(el('p','empty-state','No extensions installed.'));return}for(const ext of items){const row=el('div','extension-row'),name=el('div','setting-words');name.append(el('strong',null,ext.name),el('small',null,'Version '+ext.version));row.append(name,button('Remove',async()=>{if(await askConfirm('Remove '+ext.name+'?')){await call('remove-extension',ext.id);renderPanel()}},'secondary'));list.append(row)}}).catch(e=>notice(e.message));
- host.append(el('p','extensions-note','Compatible unpacked Chromium extensions can be loaded. Direct Chrome Web Store installation is not yet supported.'));
+ host.append(el('p','extensions-note','Open the Chrome Web Store in MH Browser. For compatible extensions, use the MH Browser installer prompt. Some Chrome APIs are unavailable in Electron.'));
  return}
 if(panel==='about'){
  const head=el('div','about-brand'),logo=el('img');logo.src='assets/mh-logo-clean.png';logo.alt='MH Browser';const names=el('div');names.append(el('h3',null,'MH Browser'),el('small',null,'Version 1.0.0'));head.append(logo,names);host.append(head);
