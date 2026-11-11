@@ -86,7 +86,30 @@ case 'panel-visible':panelOpen=!!data;layout();return true;
 case 'dialog-visible':dialogOpen=!!data;layout();return true;
 case 'desktop-site':if(t){t.desktop=!t.desktop;t.view.webContents.setUserAgent(t.desktop?desktopAgent():mobileAgent(),'en-US,en');t.view.webContents.reload();emit()}return !!t?.desktop;
 case 'share':if(t?.url!==HOME){clipboard.writeText(t.url);return t.url}return '';
-case 'media-formats':{if(!t)return{title:'No active tab',choices:[]};const candidates=[...(t.mediaCandidates?.values()||[])];try{const elements=await t.view.webContents.executeJavaScript('Array.from(document.querySelectorAll("video,audio,source")).map(e=>({url:e.currentSrc||e.src||"",mime:e.type||""})).filter(e=>e.url.startsWith("http"))',true);for(const e of elements){const candidate=media.discover({...e,referer:t.url});if(candidate)candidates.push(candidate)}}catch{}const result=siteMedia.eligible(t.url)?{title:t.title||'Video',choices:[],loadingFormats:true}:await media.formats({candidates,ses:t.view.webContents.session,referer:t.url,pageTitle:t.title});if(siteMedia.eligible(t.url)){const site=await siteMedia.formats(t.url,{fast:result.choices.length>0});if(site?.choices?.length){result.title=site.title||result.title;result.choices=[...site.choices,...result.choices.filter(c=>c.kind==='direct'&&!site.choices.some(x=>x.url===c.url))]}else if(site?.error&&!result.choices.length)result.error=site.error}t.allowedMediaChoices=new Set(result.choices.map(c=>c.url));if(siteMedia.eligible(t.url)){const currentUrl=t.url;siteMedia.metadata(currentUrl).then(info=>{if(t.url!==currentUrl)return;t.allowedMediaChoices=new Set([...t.allowedMediaChoices,...info.choices.map(c=>c.url)]);send('media-formats-ready',{url:currentUrl,...info})}).catch(async e=>{const cookieFile=await scopedMediaCookies(t,currentUrl);if(!cookieFile){if(t.url===currentUrl)send('media-formats-error',{url:currentUrl,error:String(e.message||e)});return}siteMedia.metadata(currentUrl,cookieFile).then(info=>{if(t.url!==currentUrl)return;t.allowedMediaChoices=new Set([...t.allowedMediaChoices,...info.choices.map(c=>c.url)]);send('media-formats-ready',{url:currentUrl,...info})}).catch(err=>send('media-formats-error',{url:currentUrl,error:String(err.message||err)}))})}return result}
+case 'media-formats':{
+ if(!t)return{title:'No active tab',choices:[],error:'Open a video page first'};
+ const currentUrl=t.url;
+ if(siteMedia.eligible(currentUrl)){
+  try{
+   let info;
+   try{info=await siteMedia.metadata(currentUrl)}
+   catch(publicError){
+    const cookieFile=await scopedMediaCookies(t,currentUrl);
+    if(!cookieFile)throw new Error(String(publicError.message||publicError)+' — YouTube may require a signed-in browser session. Sign in to YouTube in MH Browser and retry.');
+    try{info=await siteMedia.metadata(currentUrl,cookieFile)}
+    catch(sessionError){throw new Error(String(sessionError.message||sessionError))}
+   }
+   if(t.url!==currentUrl)return{title:'Page changed',choices:[],error:'The page changed during format detection. Open Media again.'};
+   t.allowedMediaChoices=new Set(info.choices.map(c=>c.url));
+   return{url:currentUrl,...info,loadingFormats:false};
+  }catch(e){return{url:currentUrl,title:t.title||'Video',choices:[],loadingFormats:false,error:String(e.message||e)}}
+ }
+ const candidates=[...(t.mediaCandidates?.values()||[])];
+ try{const elements=await t.view.webContents.executeJavaScript('Array.from(document.querySelectorAll("video,audio,source")).map(e=>({url:e.currentSrc||e.src||"",mime:e.type||""})).filter(e=>e.url.startsWith("http"))',true);for(const e of elements){const candidate=media.discover({...e,referer:t.url});if(candidate)candidates.push(candidate)}}catch{}
+ const result=await media.formats({candidates,ses:t.view.webContents.session,referer:t.url,pageTitle:t.title});
+ t.allowedMediaChoices=new Set(result.choices.map(c=>c.url));
+ return result;
+}
 case 'media-start':{if(!t)throw new Error('No active tab');const choice=data?.choice||{},url=String(choice.url||'');const candidates=[...(t.mediaCandidates?.values()||[])];if(!media.safeUrl(url)||!t.allowedMediaChoices?.has(url))throw new Error('Select a media URL detected on this page');if(choice.kind==='site-video'||choice.kind==='site-audio'){if(url!==t.url||!siteMedia.eligible(url))throw new Error('Media page has changed');const cookieFile=await scopedMediaCookies(t,url);const control=siteMedia.start({url,choice,cookieFile,output:app.getPath('downloads'),onUpdate:row=>{mediaRecords.set(row.id,{...row,private:t.private});notify()}});mediaTasks.set(control.id,control);return control.id}if(choice.kind==='direct'){t.view.webContents.downloadURL(url);return true}const cookies=await t.view.webContents.session.cookies.get({url});const cookieHeader=cookies.map(c=>c.name+'='+c.value).join('; ');const control=media.start({url,choice,output:app.getPath('downloads'),referer:t.url,cookies:cookieHeader,onUpdate:row=>{mediaRecords.set(row.id,{...row,private:t.private});notify()}});mediaTasks.set(control.id,control);return control.id}
 case 'media-update':return 'Site media extractor is bundled with MH Browser Windows builds. Reinstall the latest build to update it.';
 case 'downloads':return getDownloads();
