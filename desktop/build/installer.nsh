@@ -22,6 +22,10 @@
   !insertmacro MUI_PAGE_WELCOME
 !macroend
 
+!macro customPageAfterChangeDir
+  ; Directory selection is provided by electron-builder when allowToChangeInstallationDirectory is enabled.
+!macroend
+
 !macro customUnWelcomePage
   !define MUI_UNWELCOMEPAGE_TITLE "Uninstall MH Browser"
   !define MUI_UNWELCOMEPAGE_TEXT "MH Browser by MasoomDev.$\r$\n$\r$\nUninstalling removes the browser and its local profile, including saved sign-ins, history, cookies, and settings. Downloaded files outside the app profile are not removed.$\r$\n$\r$\nChoose Next to continue."
