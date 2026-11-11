@@ -41,7 +41,7 @@ jobs:
       - name: Download and verify official site-media component
         shell: pwsh
         run: |
-          $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest' -Headers @{ 'User-Agent' = 'MH-Browser-Windows-Build' }
+          $release = Invoke-RestMethod -Uri 'https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest' -Headers @{ 'User-Agent' = 'MH-Browser-Windows-Build'; 'Authorization' = 'Bearer ${{ github.token }}' }
           if (-not $release.tag_name) { throw 'Cannot determine latest yt-dlp version' }
           $base = "https://github.com/yt-dlp/yt-dlp/releases/download/$($release.tag_name)"
           Invoke-WebRequest -Uri "$base/SHA2-256SUMS" -OutFile 'yt-dlp-checksums.txt'
