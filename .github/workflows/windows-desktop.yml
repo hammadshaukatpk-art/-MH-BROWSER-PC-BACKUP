@@ -72,6 +72,14 @@ jobs:
           if (-not (Test-Path 'ui/assets/mh-logo-clean.png')) { throw 'Missing MH logo' }
           if (-not (Test-Path 'build/mh-browser.ico')) { throw 'Missing Windows icon' }
           python -c "from PIL import Image; im=Image.open('ui/assets/mh-logo-clean.png').convert('RGBA'); assert im.size==(768,768); assert im.getpixel((0,0))[3]==0; assert im.getpixel((384,384))[3]==255; print('Logo transparency and HD size verified')"
+      - name: Smoke-test bundled downloader against public YouTube video
+        shell: pwsh
+        timeout-minutes: 3
+        run: |
+          $testUrl = 'https://www.youtube.com/watch?v=WrxYRXH2ceg'
+          & 'media-tools/yt-dlp.exe' --ignore-config --js-runtimes 'deno:media-tools/deno.exe' --remote-components ejs:github --no-playlist --skip-download --list-formats --socket-timeout 12 --retries 1 $testUrl 2>&1 | Tee-Object -FilePath 'yt-dlp-smoke.log'
+          if ($LASTEXITCODE -ne 0) { throw 'Bundled YouTube extractor failed the real public-video format test' }
+          if (-not (Select-String -Path 'yt-dlp-smoke.log' -Pattern 'audio only|video only|mp4|webm' -Quiet)) { throw 'Extractor returned no recognized media formats' }
       - name: Build EXE installer
         run: npm run dist
       - name: Upload Windows installer
