@@ -51,6 +51,17 @@ jobs:
           $expected = ($hashLine.Trim() -split '\s+')[0].ToUpperInvariant()
           $actual = (Get-FileHash 'media-tools/yt-dlp.exe' -Algorithm SHA256).Hash
           if ($actual -ne $expected) { throw 'yt-dlp checksum mismatch' }
+      - name: Bundle Deno JavaScript runtime for YouTube extraction
+        shell: pwsh
+        run: |
+          $denoRelease = Invoke-RestMethod -Uri 'https://api.github.com/repos/denoland/deno/releases/latest' -Headers @{ 'User-Agent' = 'MH-Browser-Windows-Build'; 'Authorization' = 'Bearer ${{ github.token }}' }
+          if (-not $denoRelease.tag_name) { throw 'Cannot determine Deno version' }
+          $denoUrl = "https://github.com/denoland/deno/releases/download/$($denoRelease.tag_name)/deno-x86_64-pc-windows-msvc.zip"
+          Invoke-WebRequest -Uri $denoUrl -OutFile 'deno-runtime.zip'
+          Expand-Archive -Path 'deno-runtime.zip' -DestinationPath 'media-tools' -Force
+          if (-not (Test-Path 'media-tools/deno.exe')) { throw 'Deno executable missing' }
+          & 'media-tools/deno.exe' --version
+          & 'media-tools/yt-dlp.exe' --version
       - name: Validate desktop scripts and assets
         shell: pwsh
         run: |
