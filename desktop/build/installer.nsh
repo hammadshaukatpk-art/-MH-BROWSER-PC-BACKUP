@@ -12,9 +12,7 @@
 
 ; Keep installation per-user and remove the confusing install-mode radio page.
 ; Existing user sessions remain intact on ordinary in-place updates.
-!macro customInstallMode
-  StrCpy $isForceCurrentInstall "1"
-!macroend
+; Keep the normal installer flow, including the directory chooser.
 
 !macro customWelcomePage
   !define MUI_WELCOMEPAGE_TITLE "Welcome to MH Browser"
